@@ -1,0 +1,98 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context.xsd
+         http://www.springframework.org/schema/tx
+         http://www.springframework.org/schema/tx/spring-tx.xsd
+         http://www.springframework.org/schema/aop
+         http://www.springframework.org/schema/aop/spring-aop.xsd"
+	default-lazy-init="true">
+	<context:annotation-config />
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:jdbc.properties</value>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 扫描com.yueya包下得所有类 -->
+	<context:component-scan base-package="com.yueya" />
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+		destroy-method="close">
+		<property name="driverClass" value="${driverClass}" />
+		<property name="jdbcUrl"
+			value="${jdbcUrl}" />
+		<property name="user" value="${user}" />
+		<property name="password" value="${password}" />
+		<property name="minPoolSize" value="${minPoolSize}" />
+		<property name="maxPoolSize" value="${maxPoolSize}" />
+		<property name="maxIdleTime" value="${maxIdleTime}" />
+		<property name="acquireIncrement" value="${acquireIncrement}" />
+		<property name="maxStatements" value="${maxStatements}" />
+		<property name="initialPoolSize" value="${initialPoolSize}" />
+		<property name="idleConnectionTestPeriod" value="${idleConnectionTestPeriod}" />
+		<property name="acquireRetryAttempts" value="${acquireRetryAttempts}" />
+		<property name="automaticTestTable" value="${automaticTestTable}" />
+		<property name="breakAfterAcquireFailure" value="${breakAfterAcquireFailure}" />
+		<property name="testConnectionOnCheckin" value="${testConnectionOnCheckin}" />
+	</bean>
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+		<property name="packagesToScan">
+			<list>
+				<value>com.yueya</value>
+			</list>
+		</property>
+		<property name="hibernateProperties">
+			<value>
+				hibernate.dialect=org.hibernate.dialect.MySQLDialect
+
+				<!-- ehcache 缓存 -->
+				<!-- hibernate.cache.use_second_level_cache=true
+				hibernate.hbm2ddl.auto=update
+				hibernate.cache.use_structured_entries=true
+				hibernate.cache.provider_class=org.hibernate.cache.internal.EhCacheProvider
+				hibernate.cache.region.factory_class=org.hibernate.cache.EhCacheRegionFactory
+				hibernate.net.sf.ehcache.configurationResourceName=classpath:ehcache.xml
+				hibernate.cache.use_query_cache=true -->
+			</value>
+
+		</property>
+	</bean>
+
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory">
+			<ref bean="sessionFactory" />
+		</property>
+	</bean>
+	<!-- spring事务管理 -->
+	<tx:advice id="txtAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="is*" rollback-for="Exception" read-only="true" />
+			<tx:method name="load*" rollback-for="Exception" read-only="true" />
+			<tx:method name="get*" rollback-for="Exception" read-only="true" />
+			<tx:method name="query*" rollback-for="Exception"
+				read-only="true" />
+			<tx:method name="list*" rollback-for="Exception" read-only="true" />
+			<tx:method name="*" rollback-for="Exception" propagation="REQUIRED" />
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:pointcut id="generic"
+			expression="execution (public * com.yueya..*.service.*.*(..))" />
+		<aop:pointcut id="other"
+			expression="execution (public * com.yueya.base.impl.BaseServiceImpl.*(..))" />
+		<aop:advisor advice-ref="txtAdvice" pointcut-ref="generic" />
+		<aop:advisor advice-ref="txtAdvice" pointcut-ref="other" />
+	</aop:config>
+</beans>
